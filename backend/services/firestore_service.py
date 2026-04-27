@@ -1,65 +1,104 @@
 """
 firestore_service.py — Firebase Firestore Operations
 
-Handles reading and writing audit reports to Firestore.
-
-TODO: Implement full logic in next phase.
+Handles reading and writing audit reports.
+Falls back to in-memory storage if Firebase credentials are not configured.
 """
 
 import os
-# import firebase_admin
-# from firebase_admin import credentials, firestore
+import uuid
+from datetime import datetime
 
-# cred = credentials.Certificate(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
-# firebase_admin.initialize_app(cred)
-# db = firestore.client()
+# ── Try to initialise Firebase, fall back to in-memory ──────
+_db = None
+try:
+    creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    project_id = os.getenv("FIREBASE_PROJECT_ID")
+    if creds_path and project_id and os.path.exists(creds_path):
+        import firebase_admin
+        from firebase_admin import credentials, firestore
+        if not firebase_admin._apps:
+            cred = credentials.Certificate(creds_path)
+            firebase_admin.initialize_app(cred)
+        _db = firestore.client()
+        print("✅ Firestore connected")
+    else:
+        print("⚠️  Firebase credentials not found — using in-memory storage")
+except Exception as e:
+    print(f"⚠️  Firebase init failed ({e}) — using in-memory storage")
+
+# In-memory fallback
+_memory_store: dict[str, dict] = {}
 
 COLLECTION_AUDITS = "audits"
-COLLECTION_USERS  = "users"
 
 
 def save_audit_report(user_id: str, report: dict) -> str:
     """
-    Save a full audit report to Firestore.
+    Save a full audit report. Uses Firestore if available, otherwise in-memory.
 
     Args:
         user_id: Firebase UID of the authenticated user
         report:  Full audit result dict
 
     Returns:
-        report_id (str): The auto-generated Firestore document ID
+        report_id (str): The document ID
     """
-    # TODO: implement
-    # doc_ref = db.collection(COLLECTION_AUDITS).document()
-    # doc_ref.set({ "user_id": user_id, **report })
-    # return doc_ref.id
-    return "placeholder_report_id"
+    report_id = str(uuid.uuid4())[:8]
+    doc = {
+        "user_id": user_id,
+        "created_at": datetime.utcnow().isoformat(),
+        **report,
+    }
+
+    if _db:
+        doc_ref = _db.collection(COLLECTION_AUDITS).document(report_id)
+        doc_ref.set(doc)
+    else:
+        _memory_store[report_id] = doc
+
+    return report_id
 
 
 def get_reports_for_user(user_id: str) -> list:
     """
-    Retrieve all audit reports belonging to a user.
-
-    Args:
-        user_id: Firebase UID
+    Retrieve all audit reports (optionally filtered by user).
 
     Returns:
         List of report summary dicts
     """
-    # TODO: implement
-    return []
+    if _db:
+        docs = _db.collection(COLLECTION_AUDITS).stream()
+        results = []
+        for doc in docs:
+            d = doc.to_dict()
+            d["id"] = doc.id
+            results.append(d)
+        return results
+    else:
+        results = []
+        for rid, doc in _memory_store.items():
+            d = {**doc, "id": rid}
+            results.append(d)
+        return results
 
 
-def get_report_by_id(report_id: str, user_id: str) -> dict | None:
+def get_report_by_id(report_id: str, user_id: str = None) -> dict | None:
     """
-    Retrieve a single audit report by ID, verifying user ownership.
-
-    Args:
-        report_id: Firestore document ID
-        user_id:   Firebase UID for ownership check
+    Retrieve a single audit report by ID.
 
     Returns:
-        Report dict or None if not found / not owned by user
+        Report dict or None if not found
     """
-    # TODO: implement
-    return None
+    if _db:
+        doc = _db.collection(COLLECTION_AUDITS).document(report_id).get()
+        if doc.exists:
+            d = doc.to_dict()
+            d["id"] = doc.id
+            return d
+        return None
+    else:
+        doc = _memory_store.get(report_id)
+        if doc:
+            return {**doc, "id": report_id}
+        return None

@@ -1,14 +1,11 @@
 // app/layout.tsx — Root Layout
-// TODO: Implement in next phase
+import './globals.css'
+import { Metadata } from 'next'
 
-/**
- * Root layout wrapping all pages.
- * Responsibilities:
- *  - Load Google Fonts (Inter)
- *  - Provide Firebase Auth context
- *  - Global navigation bar
- *  - Toast notification provider
- */
+export const metadata: Metadata = {
+  title: 'Spectra AI — Bias Detection & Fairness Audit Platform',
+  description: 'Vigilance. Fairness. Innovation. Detect and mitigate bias in AI models using Fairlearn metrics.',
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

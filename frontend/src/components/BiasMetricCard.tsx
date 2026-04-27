@@ -1,19 +1,5 @@
-// components/BiasMetricCard.tsx
-// TODO: Implement in next phase
-
-/**
- * Displays a single fairness metric result as a card.
- *
- * Props:
- *  - name:        string   — metric name
- *  - value:       number   — raw computed value
- *  - display:     string   — human-readable value (e.g. "28.0%")
- *  - severity:    "safe" | "warning" | "danger"
- *  - description: string   — plain-language explanation
- *  - icon:        string   — emoji icon
- *  - label:       string   — severity label (e.g. "High Bias")
- *  - color:       string   — hex color for severity
- */
+// components/BiasMetricCard.tsx — Displays a single fairness metric
+'use client'
 
 export interface BiasMetricCardProps {
   name: string
@@ -26,7 +12,18 @@ export interface BiasMetricCardProps {
   color: string
 }
 
-export default function BiasMetricCard(props: BiasMetricCardProps) {
-  // TODO: implement styled card with animated value reveal
-  return <div>{props.name}: {props.display}</div>
+export default function BiasMetricCard({
+  name, display, severity, description, icon, label,
+}: BiasMetricCardProps) {
+  return (
+    <div className={`glass-card metric-card ${severity} animate-in`}>
+      <div className="metric-header">
+        <div className="metric-icon">{icon}</div>
+        <span className={`score-badge ${severity}`}>{label}</span>
+      </div>
+      <div className="metric-name">{name}</div>
+      <div className="metric-value">{display}</div>
+      <div className="metric-desc">{description}</div>
+    </div>
+  )
 }

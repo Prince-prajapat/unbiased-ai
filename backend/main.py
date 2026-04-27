@@ -31,9 +31,9 @@ app.add_middleware(
 )
 
 # ─── Routers ─────────────────────────────────────────────────
-# from routers import audit, reports
-# app.include_router(audit.router,   prefix="/audit",   tags=["Audit"])
-# app.include_router(reports.router, prefix="/reports", tags=["Reports"])
+from routers import audit, reports
+app.include_router(audit.router,   prefix="/audit",   tags=["Audit"])
+app.include_router(reports.router, prefix="/reports", tags=["Reports"])
 
 
 @app.get("/health", tags=["Health"])

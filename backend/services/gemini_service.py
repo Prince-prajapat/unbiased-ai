@@ -3,17 +3,16 @@ gemini_service.py — Google Gemini Pro API Integration
 
 Sends raw bias metrics JSON to Gemini Pro and returns
 a plain-language explanation + 3 engineering recommendations.
-
-TODO: Implement full logic in next phase.
 """
 
 import os
 import json
-# import google.generativeai as genai
+import google.generativeai as genai
 
-# genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-# model = genai.GenerativeModel("gemini-pro")
-
+# Configure Gemini
+api_key = os.getenv("GEMINI_API_KEY")
+if api_key:
+    genai.configure(api_key=api_key)
 
 GEMINI_PROMPT_TEMPLATE = """
 You are a fairness and ethics expert in AI systems.
@@ -24,12 +23,22 @@ Here are statistical bias metrics for an AI decision-making model:
 The model is being used in the context of: {use_case}
 The protected attribute being analysed is: {sensitive_attribute}
 
-Please:
-1. Explain these results in simple, clear terms that a non-technical HR manager or business leader can understand.
-2. Specify exactly which group(s) are being discriminated against and by how much.
-3. Recommend exactly 3 specific, actionable ways the engineering team can fix the training data or model to reduce this bias.
+Please provide your response as valid JSON with exactly this structure:
+{{
+  "explanation": "A clear, plain-language explanation of the bias findings (2-3 paragraphs).",
+  "recommendations": [
+    "First specific, actionable recommendation",
+    "Second specific, actionable recommendation",
+    "Third specific, actionable recommendation"
+  ]
+}}
 
-Keep your response empathetic, clear, and solution-focused. Avoid unnecessary jargon.
+Guidelines:
+1. Explain the results in simple terms a non-technical HR manager or business leader can understand.
+2. Specify which group(s) are being discriminated against and by how much.
+3. Make the 3 recommendations specific, actionable, and engineering-focused.
+4. Be empathetic, clear, and solution-focused. Avoid jargon.
+5. Return ONLY the JSON, no other text.
 """
 
 
@@ -51,17 +60,47 @@ def get_gemini_explanation(
             - explanation (str): Plain-language explanation
             - recommendations (list[str]): 3 fix recommendations
     """
+    if not api_key:
+        return {
+            "explanation": "Gemini API key not configured. Please set GEMINI_API_KEY in your .env file to get AI-powered explanations of bias metrics.",
+            "recommendations": [
+                "Configure your Gemini API key to enable AI explanations.",
+                "Review the raw metrics above for bias indicators.",
+                "Consult your fairness team for mitigation strategies.",
+            ],
+        }
+
     prompt = GEMINI_PROMPT_TEMPLATE.format(
         metrics_json=json.dumps(metrics, indent=2),
         sensitive_attribute=sensitive_attribute,
         use_case=use_case,
     )
 
-    # TODO: implement API call
-    # response = model.generate_content(prompt)
-    # return parse_gemini_response(response.text)
+    try:
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        response = model.generate_content(prompt)
+        text = response.text.strip()
 
-    return {
-        "explanation": "Gemini explanation — coming soon",
-        "recommendations": [],
-    }
+        # Remove markdown code fences if present
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+        if text.endswith("```"):
+            text = text[:-3].strip()
+        if text.startswith("json"):
+            text = text[4:].strip()
+
+        parsed = json.loads(text)
+        return {
+            "explanation": parsed.get("explanation", ""),
+            "recommendations": parsed.get("recommendations", []),
+        }
+    except Exception as e:
+        print(f"Gemini API error: {e}")
+        return {
+            "explanation": f"AI analysis could not be generated: {str(e)}",
+            "recommendations": [
+                "Review the demographic parity metrics for disparities between groups.",
+                "Check if the training data has representative samples from all groups.",
+                "Consider applying bias mitigation techniques like resampling or reweighting.",
+            ],
+        }
