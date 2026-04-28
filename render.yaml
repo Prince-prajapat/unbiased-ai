@@ -21,7 +21,8 @@ services:
         sync: false
       - key: FIREBASE_CLIENT_EMAIL
         sync: false
-
+      - key: ALLOWED_ORIGINS
+        sync: false # Set this to your frontend URL (e.g., https://spectra-ai-frontend.onrender.com) once it's created.
   # ----------------------------------------
   # 2. Frontend Service (Next.js)
   # ----------------------------------------
