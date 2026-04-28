@@ -38,7 +38,12 @@ export default function DashboardPage() {
   const fetchReports = async (u: User) => {
     try {
       const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-      const res = await fetch(`${API}/reports/`)
+      const token = await u.getIdToken()
+      const res = await fetch(`${API}/reports/`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       const data = await res.json()
       setReports(data.reports || [])
     } catch (err) {

@@ -86,7 +86,7 @@ def get_reports_for_user(user_id: str) -> list:
         List of report summary dicts
     """
     if _db:
-        docs = _db.collection(COLLECTION_AUDITS).stream()
+        docs = _db.collection(COLLECTION_AUDITS).where(filter=firestore.FieldFilter("user_id", "==", user_id)).stream()
         results = []
         for doc in docs:
             d = doc.to_dict()
@@ -96,8 +96,9 @@ def get_reports_for_user(user_id: str) -> list:
     else:
         results = []
         for rid, doc in _memory_store.items():
-            d = {**doc, "id": rid}
-            results.append(d)
+            if doc.get("user_id") == user_id:
+                d = {**doc, "id": rid}
+                results.append(d)
         return results
 
 
@@ -112,11 +113,15 @@ def get_report_by_id(report_id: str, user_id: str = None) -> dict | None:
         doc = _db.collection(COLLECTION_AUDITS).document(report_id).get()
         if doc.exists:
             d = doc.to_dict()
+            if user_id and d.get("user_id") != user_id:
+                return None
             d["id"] = doc.id
             return d
         return None
     else:
         doc = _memory_store.get(report_id)
         if doc:
+            if user_id and doc.get("user_id") != user_id:
+                return None
             return {**doc, "id": report_id}
         return None

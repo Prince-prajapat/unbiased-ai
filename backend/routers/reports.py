@@ -4,16 +4,17 @@ reports.py — GET /reports Router
 Retrieves audit reports from storage.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from services.firestore_service import get_reports_for_user, get_report_by_id
+from dependencies import get_current_user
 
 router = APIRouter()
 
 
 @router.get("/")
-async def list_reports():
+async def list_reports(user_id: str = Depends(get_current_user)):
     """List all audit reports."""
-    reports = get_reports_for_user(user_id="anonymous")
+    reports = get_reports_for_user(user_id=user_id)
 
     # Return summary format expected by the frontend
     summaries = []
@@ -31,9 +32,9 @@ async def list_reports():
 
 
 @router.get("/{report_id}")
-async def get_report(report_id: str):
+async def get_report(report_id: str, user_id: str = Depends(get_current_user)):
     """Get a single full audit report by ID."""
-    report = get_report_by_id(report_id=report_id)
+    report = get_report_by_id(report_id=report_id, user_id=user_id)
 
     if not report:
         return {"error": "Report not found", "metrics": None}

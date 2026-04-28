@@ -70,6 +70,7 @@ export default function UploadPage() {
 
     try {
       const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const token = user ? await user.getIdToken() : ''
       const formData = new FormData()
       formData.append('dataset', datasetFile)
       formData.append('predictions', predictionsFile)
@@ -77,7 +78,13 @@ export default function UploadPage() {
       formData.append('outcome_column', outcomeCol)
       if (datasetName) formData.append('dataset_name', datasetName)
 
-      const res = await fetch(`${API}/audit/`, { method: 'POST', body: formData })
+      const res = await fetch(`${API}/audit/`, { 
+        method: 'POST', 
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       const data = await res.json()
 
       if (data.report_id) {

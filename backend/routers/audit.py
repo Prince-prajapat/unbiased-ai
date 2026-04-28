@@ -11,6 +11,8 @@ from fastapi import APIRouter, UploadFile, File, Form
 from services.bias_engine import run_full_analysis
 from services.gemini_service import get_gemini_explanation
 from services.firestore_service import save_audit_report
+from fastapi import Depends
+from dependencies import get_current_user
 
 router = APIRouter()
 
@@ -22,6 +24,7 @@ async def run_audit(
     sensitive_attribute: str= Form(...,  description="Protected attribute column name"),
     outcome_column: str     = Form(...,  description="Ground truth outcome column name"),
     dataset_name: str       = Form(None, description="Optional human-readable dataset name"),
+    user_id: str            = Depends(get_current_user),
 ):
     """
     Run a full bias audit:
@@ -66,7 +69,7 @@ async def run_audit(
     }
 
     # ── 5. Save & return ─────────────────────────────────────
-    report_id = save_audit_report(user_id="anonymous", report=report)
+    report_id = save_audit_report(user_id=user_id, report=report)
 
     return {
         "report_id": report_id,

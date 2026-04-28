@@ -38,15 +38,20 @@ export default function ReportPage({ params }: { params: { id: string } }) {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) { router.push('/'); return }
       setUser(u)
-      fetchReport(params.id)
+      fetchReport(params.id, u)
     })
     return unsub
   }, [params.id, router])
 
-  const fetchReport = async (id: string) => {
+  const fetchReport = async (id: string, u: User) => {
     try {
       const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-      const res = await fetch(`${API}/reports/${id}`)
+      const token = await u.getIdToken()
+      const res = await fetch(`${API}/reports/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       const data = await res.json()
       setReport(data)
     } catch (err) {
