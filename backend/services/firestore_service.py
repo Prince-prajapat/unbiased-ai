@@ -14,14 +14,32 @@ _db = None
 try:
     creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     project_id = os.getenv("FIREBASE_PROJECT_ID")
-    if creds_path and project_id and os.path.exists(creds_path):
-        import firebase_admin
-        from firebase_admin import credentials, firestore
+    private_key = os.getenv("FIREBASE_PRIVATE_KEY")
+    client_email = os.getenv("FIREBASE_CLIENT_EMAIL")
+    
+    import firebase_admin
+    from firebase_admin import credentials, firestore
+    
+    if creds_path and os.path.exists(creds_path):
         if not firebase_admin._apps:
             cred = credentials.Certificate(creds_path)
             firebase_admin.initialize_app(cred)
         _db = firestore.client()
-        print("✅ Firestore connected")
+        print("✅ Firestore connected (via JSON file)")
+    elif project_id and private_key and client_email:
+        if not firebase_admin._apps:
+            # Replace escaped newlines if they are passed from env vars
+            private_key = private_key.replace('\\n', '\n')
+            cred = credentials.Certificate({
+                "type": "service_account",
+                "project_id": project_id,
+                "private_key": private_key,
+                "client_email": client_email,
+                "token_uri": "https://oauth2.googleapis.com/token",
+            })
+            firebase_admin.initialize_app(cred)
+        _db = firestore.client()
+        print("✅ Firestore connected (via Env Vars)")
     else:
         print("⚠️  Firebase credentials not found — using in-memory storage")
 except Exception as e:
