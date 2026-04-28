@@ -35,13 +35,7 @@ services:
     plan: free
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        # This automatically uses the Render internal/external URL of the backend
-        fromService:
-          name: spectra-ai-backend
-          type: web
-          property: host
-        # We prefix it with https:// to ensure it uses the correct protocol
-        value: https://${NEXT_PUBLIC_API_URL}
+        sync: false # Set this to https://spectra-ai-backend.onrender.com
       - key: NEXT_PUBLIC_FIREBASE_API_KEY
         sync: false
       - key: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
