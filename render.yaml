@@ -6,7 +6,7 @@ services:
     name: spectra-ai-backend
     env: python
     rootDir: backend
-    buildCommand: "pip install -r requirements.txt"
+    buildCommand: "pip install --no-cache-dir -r requirements.txt"
     startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
     plan: free
     envVars:
@@ -23,6 +23,8 @@ services:
         sync: false
       - key: ALLOWED_ORIGINS
         sync: false # Set this to your frontend URL (e.g., https://spectra-ai-frontend.onrender.com) once it's created.
+      - key: PYTHON_VERSION
+        value: "3.11.0"
   # ----------------------------------------
   # 2. Frontend Service (Next.js)
   # ----------------------------------------
